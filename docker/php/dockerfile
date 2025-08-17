@@ -1,0 +1,26 @@
+FROM php:8.4-fpm-alpine
+
+RUN set -eux; \
+    apk add --no-cache --virtual .build-deps $PHPIZE_DEPS linux-headers postgresql-dev; \
+    apk add --no-cache postgresql-libs
+
+# Расширение PDO PgSQL
+RUN docker-php-ext-install pdo_pgsql
+
+# RUN pecl install xdebug-3.3.2 \
+RUN pecl install xdebug \
+    && docker-php-ext-enable xdebug
+
+# Отдельный файл ТОЛЬКО с настройками Xdebug (без zend_extension)
+RUN { \
+      echo 'xdebug.mode=${XDEBUG_MODE:-debug}'; \
+      echo 'xdebug.start_with_request=${XDEBUG_START_WITH_REQUEST:-trigger}'; \
+      echo 'xdebug.client_host=${XDEBUG_CLIENT_HOST:-host.docker.internal}'; \
+      echo 'xdebug.client_port=${XDEBUG_CLIENT_PORT:-9003}'; \
+      echo 'xdebug.log_level=${XDEBUG_LOG_LEVEL:-0}'; \
+    } > /usr/local/etc/php/conf.d/zz-xdebug.ini
+
+# Чистим build-deps в самом конце
+RUN apk del .build-deps
+
+WORKDIR /var/www/html
