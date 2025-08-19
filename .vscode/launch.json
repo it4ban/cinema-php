@@ -7,8 +7,8 @@
 			"request": "launch",
 			"port": 9003,
 			"pathMappings": {
-				"/var/www/html": "${workspaceFolder}/public",
-				"/public": "${workspaceFolder}/public"
+				"/var/www/html": "${workspaceFolder}/src",
+				"/src": "${workspaceFolder}/src"
 			},
 			"xdebugSettings": {
 				"max_children": 128,
