@@ -20,12 +20,8 @@ services:
     volumes:
       - './src:/var/www/html'
     working_dir: /var/www/html
-    environment:
-      XDEBUG_MODE: 'debug'
-      XDEBUG_START_WITH_REQUEST: 'trigger'
-      XDEBUG_CLIENT_HOST: 'host.docker.internal'
-      XDEBUG_CLIENT_PORT: '9003'
-      XDEBUG_LOG_LEVEL: '0'
+    env_file:
+      - env/.env
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     restart: unless-stopped
@@ -33,15 +29,35 @@ services:
       - db
     networks:
       - backend_net
+  composer:
+    image: composer:latest
+    working_dir: /var/www/html
+    volumes:
+      - './src:/var/www/html'
+      - 'composer_cache:/tmp/composer-cache'
+    environment:
+      COMPOSER_CACHE_DIR: /tmp/composer-cache
+    networks:
+      - backend_net
+  artisan:
+    build:
+      context: ./docker/php
+    working_dir: /var/www/html
+    volumes:
+      - './src:/var/www/html'
+    entrypoint: ['php', 'artisan']
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend_net
   db:
     image: postgres:17-alpine
     container_name: postgres
     ports:
       - '5432:5432'
-    environment:
-      - 'POSTGRES_USER=postgres'
-      - 'POSTGRES_PASSWORD=postgres'
-      - 'POSTGRES_DB=cinema_db'
+    env_file:
+      - env/.env
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 5s
@@ -56,6 +72,8 @@ services:
 
 volumes:
   postgres_data:
+  composer_data:
+  composer_cache:
 
 networks:
   frontend_net:

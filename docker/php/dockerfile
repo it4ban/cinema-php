@@ -1,18 +1,17 @@
 FROM php:8.4-fpm-alpine
 
+# build + runtime
 RUN set -eux; \
-    apk add --no-cache --virtual .build-deps $PHPIZE_DEPS linux-headers postgresql-dev; \
-    apk add --no-cache postgresql-libs
+    apk add --no-cache --virtual .build-deps $PHPIZE_DEPS linux-headers postgresql-dev oniguruma-dev; \
+    apk add --no-cache postgresql-libs oniguruma
 
-# Расширение PDO PgSQL
-RUN docker-php-ext-install pdo_pgsql
+# расширения (минимум для Laravel)
+RUN docker-php-ext-install pdo_pgsql mbstring
 
-# RUN pecl install xdebug-3.3.2 \
+# xdebug (только dev)
 RUN pecl install xdebug \
-    && docker-php-ext-enable xdebug
-
-# Отдельный файл ТОЛЬКО с настройками Xdebug (без zend_extension)
-RUN { \
+ && docker-php-ext-enable xdebug \
+ && { \
       echo 'xdebug.mode=${XDEBUG_MODE:-debug}'; \
       echo 'xdebug.start_with_request=${XDEBUG_START_WITH_REQUEST:-trigger}'; \
       echo 'xdebug.client_host=${XDEBUG_CLIENT_HOST:-host.docker.internal}'; \
@@ -20,7 +19,14 @@ RUN { \
       echo 'xdebug.log_level=${XDEBUG_LOG_LEVEL:-0}'; \
     } > /usr/local/etc/php/conf.d/zz-xdebug.ini
 
-# Чистим build-deps в самом конце
-RUN apk del .build-deps
+# Dev OPCache — мгновенно видеть изменения
+RUN { \
+      echo 'opcache.enable=1'; \
+      echo 'opcache.validate_timestamps=1'; \
+      echo 'opcache.revalidate_freq=0'; \
+    } > /usr/local/etc/php/conf.d/opcache-dev.ini
+
+# подчистить build-deps — минус ~200–300 МБ
+RUN apk del .build-deps && pecl clear-cache || true
 
 WORKDIR /var/www/html
