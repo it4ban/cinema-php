@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('favorite_movies', function (Blueprint $table) {
-            $table->id();
+        Schema::create('favorites', function (Blueprint $table) {
+            $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignUuid('movie_id')->constrained('movies')->cascadeOnDelete();
             $table->unique(['user_id', 'movie_id']);
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('favorite_movies');
+        Schema::dropIfExists('favorites');
     }
 };
